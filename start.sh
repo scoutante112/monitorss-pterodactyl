@@ -7,7 +7,7 @@ set -e
 # ---------------------------------------------------------------------------
 
 DATA_DIR="${DATA_DIR:-/home/container/data}"
-LOG_DIR="/var/log/monitorss"
+LOG_DIR="/home/container/logs"
 
 MONGO_DATA="$DATA_DIR/mongodb"
 PG_DATA="$DATA_DIR/postgresql"
