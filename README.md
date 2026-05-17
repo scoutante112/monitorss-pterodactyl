@@ -100,6 +100,8 @@ Contributions are welcome! Feel free to open a pull request if you have improvem
 
 Found a bug? Please [open an issue](../../issues) — include the console output from Pterodactyl and a description of what went wrong. It helps a lot.
 
+Built with assistance from AI tooling ([Claude](https://claude.ai)).
+
 ---
 
 ## Minimum requirements
