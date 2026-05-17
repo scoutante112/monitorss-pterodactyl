@@ -44,6 +44,7 @@ RUN apt-get update && apt-get install -y \
     erlang-base erlang-asn1 erlang-crypto erlang-mnesia erlang-os-mon \
     erlang-public-key erlang-ssl erlang-runtime-tools erlang-inets \
     erlang-tools erlang-syntax-tools erlang-xmerl erlang-parsetools \
+    erlang-eldap \
     redis-server \
     && rm -rf /var/lib/apt/lists/*
 
