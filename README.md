@@ -94,6 +94,14 @@ To update your Pterodactyl server pull the new image and restart the server.
 
 ---
 
+## Contributing
+
+Contributions are welcome! Feel free to open a pull request if you have improvements, new features, or fixes you'd like to add.
+
+Found a bug? Please [open an issue](../../issues) — include the console output from Pterodactyl and a description of what went wrong. It helps a lot.
+
+---
+
 ## Minimum requirements
 
 | Resource | Recommended |
