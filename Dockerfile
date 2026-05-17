@@ -37,21 +37,16 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
     && apt-get update && apt-get install -y postgresql-17 \
     && rm -rf /var/lib/apt/lists/*
 
-# Erlang 26 from Team RabbitMQ PPA + Redis.
-# Debian Bookworm ships OTP 25 which is incompatible with RabbitMQ 3.13
-# (rabbit.erl calls timer:tc/2 with a TimeUnit atom — an OTP 26+ API).
-RUN curl -fsSL https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key \
-    | gpg --dearmor -o /usr/share/keyrings/rabbitmq-erlang.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-erlang.gpg] https://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main" \
-    > /etc/apt/sources.list.d/rabbitmq-erlang.list \
-    && apt-get update && apt-get install -y \
-        erlang-base erlang-asn1 erlang-crypto erlang-mnesia erlang-os-mon \
-        erlang-public-key erlang-ssl erlang-runtime-tools erlang-inets redis-server \
+# Erlang OTP 25 from Debian Bookworm + Redis.
+# RabbitMQ 3.12.x requires OTP 25+ (compatible); 3.13 requires OTP 26 which
+# Bookworm does not ship — so we use 3.12 to avoid the timer:tc/2 version mismatch.
+RUN apt-get update && apt-get install -y \
+    erlang-base erlang-asn1 erlang-crypto erlang-mnesia erlang-os-mon \
+    erlang-public-key erlang-ssl erlang-runtime-tools erlang-inets redis-server \
     && rm -rf /var/lib/apt/lists/*
 
-# Download RabbitMQ generic Unix binary – no wrapper scripts, no user checks,
-# runs as any user out of the box (same approach as the official Pterodactyl RabbitMQ egg)
-RUN RABBITMQ_VERSION=3.13.7 \
+# RabbitMQ 3.12.14 generic Unix binary (compatible with OTP 25 from Bookworm)
+RUN RABBITMQ_VERSION=3.12.14 \
     && curl -fsSL "https://github.com/rabbitmq/rabbitmq-server/releases/download/v${RABBITMQ_VERSION}/rabbitmq-server-generic-unix-${RABBITMQ_VERSION}.tar.xz" \
        -o /tmp/rabbitmq.tar.xz \
     && apt-get install -y xz-utils && rm -rf /var/lib/apt/lists/* \
