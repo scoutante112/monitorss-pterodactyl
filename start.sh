@@ -137,8 +137,16 @@ until /usr/lib/postgresql/17/bin/pg_isready -h 127.0.0.1 -U postgres &>/dev/null
 done
 
 echo "[wait] Waiting for RabbitMQ..."
+RMQCTL_WAIT=0
 until rabbitmqctl status &>/dev/null 2>&1; do
     sleep 2
+    RMQCTL_WAIT=$((RMQCTL_WAIT + 2))
+    if [ "$RMQCTL_WAIT" -ge 60 ]; then
+        echo "[warn] RabbitMQ rabbitmqctl not ready after 60s. RabbitMQ log:"
+        cat "$LOG_DIR/rabbit@localhost.log" 2>/dev/null | tail -30 || echo "(no log found)"
+        echo "[warn] Proceeding anyway..."
+        break
+    fi
 done
 
 # Give AMQP listener extra time to initialise after the Erlang node is up
