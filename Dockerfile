@@ -10,8 +10,11 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gnupg lsb-release ca-certificates \
-    supervisor wget git procps gosu \
+    supervisor wget git procps \
     && rm -rf /var/lib/apt/lists/*
+
+# Allow RabbitMQ to start as any non-root user
+ENV RABBITMQ_ALLOW_RUNNING_AS_ROOT=1
 
 # Node.js 24
 RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \

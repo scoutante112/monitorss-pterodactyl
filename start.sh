@@ -3,7 +3,7 @@ set -e
 
 # ---------------------------------------------------------------------------
 # MonitoRSS – Pterodactyl all-in-one startup script
-# Runs once to initialise databases, then hands off to supervisord.
+# Runs as the unprivileged 'container' user (no root/chown/gosu needed).
 # ---------------------------------------------------------------------------
 
 DATA_DIR="${DATA_DIR:-/home/container/data}"
@@ -17,14 +17,23 @@ REDIS_DATA="$DATA_DIR/redis"
 mkdir -p "$MONGO_DATA" "$PG_DATA" "$RABBITMQ_DATA" "$REDIS_DATA" "$LOG_DIR"
 
 # ---------------------------------------------------------------------------
-# PostgreSQL – initialise cluster if needed
+# PostgreSQL – initialise cluster as current user (no gosu/chown needed)
 # ---------------------------------------------------------------------------
 if [ ! -f "$PG_DATA/PG_VERSION" ]; then
     echo "[init] Initialising PostgreSQL data directory..."
-    chown -R postgres:postgres "$PG_DATA"
-    gosu postgres /usr/lib/postgresql/17/bin/initdb -D "$PG_DATA" --encoding=UTF8
+    /usr/lib/postgresql/17/bin/initdb \
+        -D "$PG_DATA" \
+        --encoding=UTF8 \
+        --username=postgres
+
+    # Replace pg_hba.conf with trust auth so we can connect over TCP
+    # without a password from any OS user.
+    cat > "$PG_DATA/pg_hba.conf" << 'EOF'
+local   all   all              trust
+host    all   all   127.0.0.1/32   trust
+host    all   all   ::1/128        trust
+EOF
 fi
-chown -R postgres:postgres "$PG_DATA"
 
 # ---------------------------------------------------------------------------
 # Start infrastructure services in the background
@@ -35,10 +44,11 @@ mongod \
     --replSet dbrs \
     --bind_ip_all \
     --logpath "$LOG_DIR/mongo.log" \
+    --pidfilepath /tmp/mongod.pid \
     --fork
 
 echo "[start] Starting PostgreSQL..."
-gosu postgres /usr/lib/postgresql/17/bin/pg_ctl start \
+/usr/lib/postgresql/17/bin/pg_ctl start \
     -D "$PG_DATA" \
     -l "$LOG_DIR/postgresql.log" \
     -w
@@ -53,8 +63,9 @@ redis-server \
 echo "[start] Starting RabbitMQ..."
 RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA" \
 RABBITMQ_LOG_BASE="$LOG_DIR" \
+RABBITMQ_PID_FILE="/tmp/rabbitmq.pid" \
     rabbitmq-server -detached
-sleep 5  # Give Erlang time to start epmd + broker
+sleep 5
 
 # ---------------------------------------------------------------------------
 # Wait for services to become ready
@@ -65,7 +76,7 @@ until mongosh --quiet --eval "db.adminCommand('ping')" &>/dev/null 2>&1; do
 done
 
 echo "[wait] Waiting for PostgreSQL..."
-until gosu postgres /usr/lib/postgresql/17/bin/pg_isready &>/dev/null 2>&1; do
+until /usr/lib/postgresql/17/bin/pg_isready -h 127.0.0.1 -U postgres &>/dev/null 2>&1; do
     sleep 1
 done
 
@@ -75,7 +86,7 @@ until rabbitmqctl status &>/dev/null 2>&1; do
 done
 
 # ---------------------------------------------------------------------------
-# Initialise MongoDB replica set (required by discord-rest-listener & feed-requests)
+# Initialise MongoDB replica set
 # ---------------------------------------------------------------------------
 REPLICA_STATUS=$(mongosh --quiet --eval "try { rs.status().ok } catch(e) { 0 }" 2>/dev/null || echo "0")
 if [ "$REPLICA_STATUS" != "1" ]; then
@@ -98,20 +109,20 @@ fi
 # Create PostgreSQL databases
 # ---------------------------------------------------------------------------
 echo "[init] Creating PostgreSQL databases if they do not exist..."
-gosu postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='feedrequests'" \
+psql -h 127.0.0.1 -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='feedrequests'" \
     | grep -q 1 \
-    || gosu postgres psql -c "CREATE DATABASE feedrequests;"
+    || psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE feedrequests;"
 
-gosu postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='userfeeds'" \
+psql -h 127.0.0.1 -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='userfeeds'" \
     | grep -q 1 \
-    || gosu postgres psql -c "CREATE DATABASE userfeeds;"
+    || psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE userfeeds;"
 
 # ---------------------------------------------------------------------------
 # Run database migrations
 # ---------------------------------------------------------------------------
 echo "[migrate] Running feed-requests migrations..."
 cd /app/services/feed-requests
-FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@localhost:5432/feedrequests}" \
+FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/feedrequests}" \
 FEED_REQUESTS_POSTGRES_SCHEMA="${FEED_REQUESTS_POSTGRES_SCHEMA:-feedrequests}" \
 FEED_REQUESTS_API_KEY="${FEED_REQUESTS_API_KEY:-feed-requests-api-key}" \
 FEED_REQUESTS_API_PORT="${FEED_REQUESTS_API_PORT:-5000}" \
@@ -122,15 +133,14 @@ FEED_REQUESTS_REDIS_DISABLE_CLUSTER=true \
 
 echo "[migrate] Running user-feeds migrations..."
 cd /app/services/user-feeds-next
-USER_FEEDS_POSTGRES_URI="${USER_FEEDS_POSTGRES_URI:-postgres://postgres@localhost:5432/userfeeds}" \
+USER_FEEDS_POSTGRES_URI="${USER_FEEDS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/userfeeds}" \
     node ./dist/src/scripts/run-migrations.js
 
 # ---------------------------------------------------------------------------
-# Export environment variables with localhost defaults so supervisord
-# inherits them for all child processes.
+# Export environment variables with localhost defaults
 # ---------------------------------------------------------------------------
 
-# Shared Discord credentials – set via Pterodactyl egg variables
+# Shared Discord credentials
 export BACKEND_API_DISCORD_BOT_TOKEN="${BOT_PRESENCE_DISCORD_BOT_TOKEN}"
 export BACKEND_API_DISCORD_CLIENT_ID="${BOT_PRESENCE_DISCORD_BOT_CLIENT_ID}"
 export DISCORD_REST_LISTENER_BOT_TOKEN="${BOT_PRESENCE_DISCORD_BOT_TOKEN}"
@@ -138,15 +148,15 @@ export DISCORD_REST_LISTENER_BOT_CLIENT_ID="${BOT_PRESENCE_DISCORD_BOT_CLIENT_ID
 export USER_FEEDS_DISCORD_CLIENT_ID="${BOT_PRESENCE_DISCORD_BOT_CLIENT_ID}"
 export USER_FEEDS_DISCORD_API_TOKEN="${BOT_PRESENCE_DISCORD_BOT_TOKEN}"
 
-# MongoDB URIs
+# MongoDB
 export BACKEND_API_MONGODB_URI="${BACKEND_API_MONGODB_URI:-mongodb://localhost:27017/rss}"
 export DISCORD_REST_LISTENER_MONGO_URI="${DISCORD_REST_LISTENER_MONGO_URI:-mongodb://localhost:27017/rss?replicaSet=dbrs&directConnection=true}"
 export FEED_REQUESTS_FEEDS_MONGODB_URI="${FEED_REQUESTS_FEEDS_MONGODB_URI:-mongodb://localhost:27017/rss?replicaSet=dbrs&directConnection=true}"
 
-# PostgreSQL
-export FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@localhost:5432/feedrequests}"
+# PostgreSQL (force TCP via 127.0.0.1 to bypass peer auth)
+export FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/feedrequests}"
 export FEED_REQUESTS_POSTGRES_SCHEMA="${FEED_REQUESTS_POSTGRES_SCHEMA:-feedrequests}"
-export USER_FEEDS_POSTGRES_URI="${USER_FEEDS_POSTGRES_URI:-postgres://postgres@localhost:5432/userfeeds}"
+export USER_FEEDS_POSTGRES_URI="${USER_FEEDS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/userfeeds}"
 
 # RabbitMQ
 export BOT_PRESENCE_RABBITMQ_URL="${BOT_PRESENCE_RABBITMQ_URL:-amqp://guest:guest@localhost:5672}"
@@ -161,7 +171,7 @@ export FEED_REQUESTS_REDIS_DISABLE_CLUSTER=true
 export USER_FEEDS_REDIS_URI="${USER_FEEDS_REDIS_URI:-redis://localhost:6379}"
 export USER_FEEDS_REDIS_DISABLE_CLUSTER=true
 
-# Internal API keys (inter-service communication, no need to change)
+# Internal API keys
 export FEED_REQUESTS_API_KEY="${FEED_REQUESTS_API_KEY:-feed-requests-api-key}"
 export FEED_REQUESTS_API_PORT="${FEED_REQUESTS_API_PORT:-5000}"
 export USER_FEEDS_API_KEY="${USER_FEEDS_API_KEY:-user-feeds-api-key}"
@@ -174,9 +184,9 @@ export BACKEND_API_FEED_REQUESTS_API_HOST="${BACKEND_API_FEED_REQUESTS_API_HOST:
 export BACKEND_API_FEED_REQUESTS_API_KEY="${BACKEND_API_FEED_REQUESTS_API_KEY:-feed-requests-api-key}"
 
 # ---------------------------------------------------------------------------
-# Hand off to supervisord which manages all Node.js services
+# Hand off to supervisord
 # ---------------------------------------------------------------------------
-echo "[start] All infrastructure ready. Starting MonitoRSS services via supervisord..."
+echo "[start] All infrastructure ready. Starting MonitoRSS services..."
 echo "[start] Web UI will be available on port ${BACKEND_API_PORT:-8000}"
 echo "[ready] All MonitoRSS services started"
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
