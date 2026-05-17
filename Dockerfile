@@ -47,13 +47,16 @@ RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
 RUN mkdir -p /etc/rabbitmq && printf 'MNESIA_BASE=/home/container/data/rabbitmq\nLOG_BASE=/home/container/logs\nPID_FILE=/tmp/rabbitmq.pid\n' \
     > /etc/rabbitmq/rabbitmq-env.conf
 
-# Remove the "Only root or rabbitmq should run" user check from the startup scripts.
-# awk skips both the echo line and the following exit 1 line.
-RUN for f in /usr/sbin/rabbitmq-server /usr/lib/rabbitmq/bin/rabbitmq-server; do \
-      [ -f "$f" ] || continue; \
-      awk '/Only root or rabbitmq should run rabbitmq-server/{skip=2} skip>0{skip--; next} 1' \
-          "$f" > /tmp/rq-patched && cp /tmp/rq-patched "$f" && chmod +x "$f"; \
-    done
+# Patch /usr/sbin/rabbitmq-server in-place:
+# 1. Line 33: redirect startup_log/startup_err to /tmp (happens before env conf is sourced)
+# 2. Remove "Only root or rabbitmq" user check (awk handles echo + exit 1 as two lines)
+RUN sed -i \
+      's|/var/log/rabbitmq/startup_log|/tmp/rabbitmq-startup.log|g; s|/var/log/rabbitmq/startup_err|/tmp/rabbitmq-startup.err|g' \
+      /usr/sbin/rabbitmq-server \
+    && awk '/Only root or rabbitmq should run rabbitmq-server/{skip=2} skip>0{skip--; next} 1' \
+         /usr/sbin/rabbitmq-server > /tmp/rq-patched \
+    && cp /tmp/rq-patched /usr/sbin/rabbitmq-server \
+    && chmod +x /usr/sbin/rabbitmq-server
 
 # ---------------------------------------------------------------------------
 # builder – clone MonitoRSS and build all services
