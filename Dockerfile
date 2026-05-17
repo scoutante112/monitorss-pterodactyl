@@ -84,6 +84,9 @@ RUN npm run build --workspace=services/feed-requests
 RUN npm run build --workspace=services/user-feeds-next
 RUN npm run build --workspace=services/backend-api
 
+# Build the React frontend (served by backend-api from client/dist at runtime)
+RUN cd services/backend-api/client && npm install && npm run build
+
 # Do NOT prune dev dependencies – mikro-orm CLI (used for migrations) lives in devDeps
 
 # ---------------------------------------------------------------------------
