@@ -63,8 +63,8 @@ RUN npm run build --workspace=services/feed-requests
 RUN npm run build --workspace=services/user-feeds-next
 RUN npm run build --workspace=services/backend-api
 
-# Drop dev dependencies across all workspaces
-RUN npm prune --omit=dev --workspaces
+# Drop dev dependencies (--ignore-scripts prevents prepare hooks from re-running)
+RUN npm prune --omit=dev --workspaces --ignore-scripts
 
 # ---------------------------------------------------------------------------
 # final – lean runtime image
