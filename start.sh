@@ -120,14 +120,17 @@ echo "$ERLANG_COOKIE" > "$HOME/.erlang.cookie"
 chmod 600 "$HOME/.erlang.cookie"
 export RABBITMQ_ERLANG_COOKIE="$ERLANG_COOKIE"
 
-# Explicit IPv4 listener so Node.js can connect via 127.0.0.1
-# (container may have net.ipv6.bindv6only=1, breaking dual-stack on [::]:5672)
-cat > /tmp/rabbitmq.conf << 'EOF'
+# Write rabbitmq.conf to the writable data dir so RabbitMQ can find it.
+# We bind both IPv4 (0.0.0.0) and IPv6 ([::]) so Node.js can connect
+# via 127.0.0.1 regardless of net.ipv6.bindv6only kernel setting.
+cat > "$RABBITMQ_DATA/rabbitmq.conf" << 'EOF'
 listeners.tcp.1 = 0.0.0.0:5672
+listeners.tcp.2 = [::]:5672
 EOF
-export RABBITMQ_CONFIG_FILE=/tmp/rabbitmq.conf
+export RABBITMQ_CONFIG_FILE="$RABBITMQ_DATA/rabbitmq.conf"
+echo "[init] RabbitMQ config written to $RABBITMQ_DATA/rabbitmq.conf"
 
-rabbitmq-server -detached
+rabbitmq-server -detached > /tmp/rabbitmq-boot.log 2>&1 || true
 sleep 5
 
 # ---------------------------------------------------------------------------
@@ -149,8 +152,15 @@ until bash -c 'echo > /dev/tcp/127.0.0.1/5672' 2>/dev/null; do
     sleep 2
     AMQP_WAIT=$((AMQP_WAIT + 2))
     if [ "$AMQP_WAIT" -ge 120 ]; then
-        echo "[warn] RabbitMQ AMQP port not ready after 120s. RabbitMQ log:"
-        cat "$LOG_DIR/rabbit@localhost.log" 2>/dev/null | tail -40 || echo "(no log found)"
+        echo "[warn] RabbitMQ AMQP port not ready after 120s."
+        echo "[debug] rabbitmq-server boot output:"
+        cat /tmp/rabbitmq-boot.log 2>/dev/null || echo "(no boot log)"
+        echo "[debug] RabbitMQ main log (last 30 lines):"
+        cat "$LOG_DIR/rabbit@localhost.log" 2>/dev/null | tail -30 || echo "(no log)"
+        echo "[debug] RabbitMQ config used:"
+        cat "$RABBITMQ_DATA/rabbitmq.conf" 2>/dev/null || echo "(no conf)"
+        echo "[debug] Processes with 'rabbit':"
+        ps aux 2>/dev/null | grep rabbit | grep -v grep || echo "(none)"
         echo "[warn] Proceeding anyway..."
         break
     fi
