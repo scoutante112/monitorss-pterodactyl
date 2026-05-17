@@ -41,11 +41,16 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
 RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
     && rm -rf /var/lib/apt/lists/*
 
-# Patch the rabbitmq-server script to allow any user (not just root/rabbitmq).
-# Pterodactyl runs as an arbitrary UID (e.g. 999) which is neither.
-# Delete the two lines: the echo message and the following "exit 1".
-RUN sed -i '/Only root or rabbitmq should run rabbitmq-server/{n;d}' /usr/lib/rabbitmq/bin/rabbitmq-server \
-    && sed -i '/Only root or rabbitmq should run rabbitmq-server/d' /usr/lib/rabbitmq/bin/rabbitmq-server
+# Patch all RabbitMQ scripts (both wrapper and actual binary, skip symlinks):
+# 1. Remove "Only root or rabbitmq" check (NSS wrapper handles identity instead)
+# 2. Redirect startup_log/startup_err from read-only /var/log/rabbitmq to /tmp
+RUN for f in /usr/sbin/rabbitmq-server /usr/lib/rabbitmq/bin/rabbitmq-server; do \
+      [ -f "$f" ] && [ ! -L "$f" ] || continue; \
+      sed -i '/Only root or rabbitmq should run rabbitmq-server/{n;d}' "$f"; \
+      sed -i '/Only root or rabbitmq should run rabbitmq-server/d' "$f"; \
+      sed -i 's|/var/log/rabbitmq/startup_log|/tmp/rabbitmq-startup.log|g' "$f"; \
+      sed -i 's|/var/log/rabbitmq/startup_err|/tmp/rabbitmq-startup.err|g' "$f"; \
+    done
 
 # ---------------------------------------------------------------------------
 # builder – clone MonitoRSS and build all services
