@@ -70,6 +70,9 @@ sed -i "s|#\?unix_socket_directories\s*=.*|unix_socket_directories = '/tmp'|" "$
 # ---------------------------------------------------------------------------
 # Start infrastructure services in the background
 # ---------------------------------------------------------------------------
+# Clear stale MongoDB lock file from previous container run
+rm -f "$MONGO_DATA/mongod.lock" "$MONGO_DATA/WiredTiger.lock"
+
 echo "[start] Starting MongoDB..."
 mongod \
     --dbpath "$MONGO_DATA" \
@@ -79,14 +82,10 @@ mongod \
     --pidfilepath /tmp/mongod.pid \
     --fork
 
-# Remove stale PID file left by a previous container run so pg_ctl starts cleanly
-if [ -f "$PG_DATA/postmaster.pid" ]; then
-    STALE_PID=$(head -1 "$PG_DATA/postmaster.pid" 2>/dev/null || echo "")
-    if [ -z "$STALE_PID" ] || ! kill -0 "$STALE_PID" 2>/dev/null; then
-        echo "[init] Removing stale PostgreSQL PID file..."
-        rm -f "$PG_DATA/postmaster.pid"
-    fi
-fi
+# Always remove the PostgreSQL PID file – it is always stale in a fresh container.
+# The persistent volume keeps it from previous runs but those processes are gone.
+rm -f "$PG_DATA/postmaster.pid"
+echo "[init] Cleared stale PostgreSQL PID file (if any)"
 
 echo "[start] Starting PostgreSQL..."
 /usr/lib/postgresql/17/bin/pg_ctl start \
