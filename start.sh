@@ -174,6 +174,8 @@ psql -h 127.0.0.1 -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='user
 # ---------------------------------------------------------------------------
 # Run database migrations
 # ---------------------------------------------------------------------------
+export NODE_ENV="${NODE_ENV:-production}"
+
 echo "[migrate] Running feed-requests migrations..."
 cd /app/services/feed-requests
 export FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/feedrequests}"
@@ -183,6 +185,11 @@ export FEED_REQUESTS_API_PORT="${FEED_REQUESTS_API_PORT:-5000}"
 export FEED_REQUESTS_RABBITMQ_BROKER_URL="${FEED_REQUESTS_RABBITMQ_BROKER_URL:-amqp://guest:guest@localhost:5672}"
 export FEED_REQUESTS_REDIS_URI="${FEED_REQUESTS_REDIS_URI:-redis://localhost:6379}"
 export FEED_REQUESTS_REDIS_DISABLE_CLUSTER=true
+export FEED_REQUESTS_FEED_REQUEST_DEFAULT_USER_AGENT="${FEED_REQUESTS_FEED_REQUEST_DEFAULT_USER_AGENT:-MonitoRSS [Self-Hosted]/1.0}"
+export FEED_REQUESTS_FEEDS_MONGODB_URI="${FEED_REQUESTS_FEEDS_MONGODB_URI:-mongodb://localhost:27017/rss?replicaSet=dbrs&directConnection=true}"
+export FEED_REQUESTS_HISTORY_PERSISTENCE_MONTHS="${FEED_REQUESTS_HISTORY_PERSISTENCE_MONTHS:-1}"
+export FEED_REQUESTS_MAX_FAIL_ATTEMPTS="${FEED_REQUESTS_MAX_FAIL_ATTEMPTS:-11}"
+export FEED_REQUESTS_REQUEST_TIMEOUT_MS="${FEED_REQUESTS_REQUEST_TIMEOUT_MS:-15000}"
 npm run migration:up
 
 echo "[migrate] Running user-feeds migrations..."
