@@ -41,6 +41,12 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
 RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
     && rm -rf /var/lib/apt/lists/*
 
+# Patch the rabbitmq-server script to allow any user (not just root/rabbitmq).
+# Pterodactyl runs as an arbitrary UID (e.g. 999) which is neither.
+# Delete the two lines: the echo message and the following "exit 1".
+RUN sed -i '/Only root or rabbitmq should run rabbitmq-server/{n;d}' /usr/lib/rabbitmq/bin/rabbitmq-server \
+    && sed -i '/Only root or rabbitmq should run rabbitmq-server/d' /usr/lib/rabbitmq/bin/rabbitmq-server
+
 # ---------------------------------------------------------------------------
 # builder – clone MonitoRSS and build all services
 # ---------------------------------------------------------------------------

@@ -6,6 +6,10 @@ set -e
 # Runs as the unprivileged 'container' user (no root/chown/gosu needed).
 # ---------------------------------------------------------------------------
 
+# Set HOME early so Erlang/RabbitMQ writes .erlang.cookie to a writable path
+# instead of trying to write to / (read-only in Pterodactyl).
+export HOME=/home/container
+
 # ---------------------------------------------------------------------------
 # Fix missing /etc/passwd entry – Pterodactyl runs with arbitrary UIDs that
 # don't exist in the image. Tools like initdb require a valid passwd entry.
@@ -92,9 +96,15 @@ redis-server \
     --save 60 1
 
 echo "[start] Starting RabbitMQ..."
+# Pre-create the Erlang cookie in $HOME so Erlang never tries /.erlang.cookie
+ERLANG_COOKIE="monitorss-pterodactyl-cookie"
+echo "$ERLANG_COOKIE" > "$HOME/.erlang.cookie"
+chmod 400 "$HOME/.erlang.cookie"
+
 RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA" \
 RABBITMQ_LOG_BASE="$LOG_DIR" \
 RABBITMQ_PID_FILE="/tmp/rabbitmq.pid" \
+RABBITMQ_ERLANG_COOKIE="$ERLANG_COOKIE" \
     rabbitmq-server -detached
 sleep 5
 
