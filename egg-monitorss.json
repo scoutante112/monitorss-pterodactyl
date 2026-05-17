@@ -1,0 +1,142 @@
+{
+    "_comment": "MonitoRSS – All-in-one Pterodactyl egg. Image is built automatically via GitHub Actions.",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-05-17T00:00:00+00:00",
+    "name": "MonitoRSS",
+    "author": "anton.bystrom@g.scoutante.se",
+    "description": "All-in-one MonitoRSS Discord RSS bot. Includes MongoDB, PostgreSQL, RabbitMQ, Redis and all MonitoRSS services in a single container.",
+    "features": null,
+    "docker_images": {
+        "ghcr.io/scoutante112/monitorss-pterodactyl:latest": "ghcr.io/scoutante112/monitorss-pterodactyl:latest"
+    },
+    "file_denylist": [],
+    "startup": "bash /start.sh",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"All MonitoRSS services started\"}",
+        "logs": "{}",
+        "stop": "^C"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\necho 'No file installation needed - all services are baked into the Docker image.'",
+            "container": "debian:bookworm-slim",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Discord Bot Token",
+            "description": "Your Discord bot token from the Developer Portal.",
+            "env_variable": "BOT_PRESENCE_DISCORD_BOT_TOKEN",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord Client ID",
+            "description": "Your Discord application's client/application ID.",
+            "env_variable": "BOT_PRESENCE_DISCORD_BOT_CLIENT_ID",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord Client Secret",
+            "description": "Your Discord application's client secret (used for OAuth2 login).",
+            "env_variable": "BACKEND_API_DISCORD_CLIENT_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Login Redirect URI",
+            "description": "The URL users are sent to after logging in, e.g. http://YOUR_SERVER_IP:8000",
+            "env_variable": "BACKEND_API_LOGIN_REDIRECT_URI",
+            "default_value": "http://localhost:8000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord OAuth2 Redirect URI",
+            "description": "Must match what you set in the Discord Developer Portal. e.g. http://YOUR_SERVER_IP:8000/api/v1/discord/callback-v2",
+            "env_variable": "BACKEND_API_DISCORD_REDIRECT_URI",
+            "default_value": "http://localhost:8000/api/v1/discord/callback-v2",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Session Secret",
+            "description": "Random string used to sign session cookies. Generate with: openssl rand -hex 32",
+            "env_variable": "BACKEND_API_SESSION_SECRET",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|min:32",
+            "field_type": "text"
+        },
+        {
+            "name": "Session Salt",
+            "description": "Random 16-char string. Generate with: openssl rand -hex 8",
+            "env_variable": "BACKEND_API_SESSION_SALT",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        },
+        {
+            "name": "Backend API Port",
+            "description": "Port the web UI and API will listen on.",
+            "env_variable": "BACKEND_API_PORT",
+            "default_value": "8000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|min:1|max:65535",
+            "field_type": "text"
+        },
+        {
+            "name": "Default Max User Feeds",
+            "description": "Maximum number of feeds a user can add.",
+            "env_variable": "BACKEND_API_DEFAULT_MAX_USER_FEEDS",
+            "default_value": "10000",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric",
+            "field_type": "text"
+        },
+        {
+            "name": "Default Refresh Rate (minutes)",
+            "description": "How often feeds are checked, in minutes.",
+            "env_variable": "BACKEND_API_DEFAULT_REFRESH_RATE_MINUTES",
+            "default_value": "10",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|min:1",
+            "field_type": "text"
+        },
+        {
+            "name": "Data Directory",
+            "description": "Where MongoDB, PostgreSQL, Redis and RabbitMQ store their data. Keep the default.",
+            "env_variable": "DATA_DIR",
+            "default_value": "/home/container/data",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string",
+            "field_type": "text"
+        }
+    ]
+}
