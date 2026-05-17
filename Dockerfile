@@ -41,15 +41,22 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
 RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
     && rm -rf /var/lib/apt/lists/*
 
-# Replace /usr/sbin/rabbitmq-server entirely with a minimal wrapper.
-# The Debian wrapper hardcodes a redirect to /var/log/rabbitmq/startup_log at
-# line 33 before reading any environment variables – unfixable with sed alone.
-RUN printf '#!/bin/sh\n# Use the log dir passed from start.sh, fall back to /tmp\nRABBITMQ_LOG_BASE="${RABBITMQ_LOG_BASE:-/tmp/rabbitmq-logs}"\nmkdir -p "$RABBITMQ_LOG_BASE"\nexport RABBITMQ_LOG_BASE\nexec /usr/lib/rabbitmq/bin/rabbitmq-server "$@"\n' \
+# /usr/lib/rabbitmq/bin/rabbitmq-server is a SYMLINK to /usr/sbin/rabbitmq-server.
+# Our old wrapper called exec /usr/lib/rabbitmq/bin/... which resolved back to itself
+# causing infinite recursion. Fix: dereference the symlink, patch that real file,
+# then make our wrapper call the patched real file under a new name.
+RUN cp -L /usr/sbin/rabbitmq-server /usr/sbin/rabbitmq-server-real \
+    && chmod +x /usr/sbin/rabbitmq-server-real
+
+# Patch the real script: remove user check and redirect logs
+RUN sed -i '/Only root or rabbitmq should run rabbitmq-server/{n;d}' /usr/sbin/rabbitmq-server-real \
+    && sed -i '/Only root or rabbitmq should run rabbitmq-server/d' /usr/sbin/rabbitmq-server-real \
+    && sed -i 's|/var/log/rabbitmq|/tmp/rabbitmq-logs|g' /usr/sbin/rabbitmq-server-real
+
+# Replace the wrapper to call the patched real file (no more symlink recursion)
+RUN printf '#!/bin/sh\nRABBITMQ_LOG_BASE="${RABBITMQ_LOG_BASE:-/tmp/rabbitmq-logs}"\nmkdir -p "$RABBITMQ_LOG_BASE"\nexport RABBITMQ_LOG_BASE\nexec /usr/sbin/rabbitmq-server-real "$@"\n' \
     > /usr/sbin/rabbitmq-server \
     && chmod +x /usr/sbin/rabbitmq-server
-
-# Patch the actual rabbitmq binary so it also uses the env var instead of /var/log/rabbitmq
-RUN sed -i 's|/var/log/rabbitmq|/tmp/rabbitmq-logs|g' /usr/lib/rabbitmq/bin/rabbitmq-server
 
 # ---------------------------------------------------------------------------
 # builder – clone MonitoRSS and build all services
