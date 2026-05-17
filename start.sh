@@ -125,7 +125,6 @@ export RABBITMQ_ERLANG_COOKIE="$ERLANG_COOKIE"
 # via 127.0.0.1 regardless of net.ipv6.bindv6only kernel setting.
 cat > "$RABBITMQ_DATA/rabbitmq.conf" << 'EOF'
 listeners.tcp.1 = 0.0.0.0:5672
-listeners.tcp.2 = [::]:5672
 EOF
 export RABBITMQ_CONFIG_FILE="$RABBITMQ_DATA/rabbitmq.conf"
 echo "[init] RabbitMQ config written to $RABBITMQ_DATA/rabbitmq.conf"
