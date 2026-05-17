@@ -57,9 +57,9 @@ EOF
     echo "unix_socket_directories = '/tmp'" >> "$PG_DATA/postgresql.conf"
 fi
 
-# Always ensure socket dir is set in case this is an existing data dir from before the fix
-grep -q "unix_socket_directories" "$PG_DATA/postgresql.conf" \
-    || echo "unix_socket_directories = '/tmp'" >> "$PG_DATA/postgresql.conf"
+# Force socket directory to /tmp (overrides any value in postgresql.conf).
+# /var/run/postgresql is read-only in Pterodactyl containers.
+sed -i "s|#\?unix_socket_directories\s*=.*|unix_socket_directories = '/tmp'|" "$PG_DATA/postgresql.conf"
 
 # ---------------------------------------------------------------------------
 # Start infrastructure services in the background
@@ -77,6 +77,7 @@ echo "[start] Starting PostgreSQL..."
 /usr/lib/postgresql/17/bin/pg_ctl start \
     -D "$PG_DATA" \
     -l "$LOG_DIR/postgresql.log" \
+    -o "-k /tmp" \
     -w || {
     echo "[error] PostgreSQL failed to start! Log:"
     cat "$LOG_DIR/postgresql.log" 2>/dev/null || echo "(log file not found)"
