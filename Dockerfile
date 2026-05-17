@@ -47,29 +47,24 @@ ARG MONITORSS_VERSION
 
 WORKDIR /build
 
-RUN git clone --depth 1 --branch ${MONITORSS_VERSION} \
-    https://github.com/synzen/MonitoRSS.git . \
-    || git clone --depth 1 https://github.com/synzen/MonitoRSS.git .
+RUN git clone --depth 1 https://github.com/synzen/MonitoRSS.git .
 
-# Build shared workspace packages
-RUN npm install --workspace=packages/contracts --workspace=packages/logger \
-    && npm run build:packages
+# Install ALL workspace dependencies from root so workspace symlinks are
+# set up correctly and local packages aren't rebuilt with wrong tsconfig.
+RUN npm install
 
-# Build each service and prune dev dependencies
-RUN cd services/bot-presence \
-    && npm install && npm run build && npm prune --production
+# Build shared packages first (services depend on these)
+RUN npm run build:packages
 
-RUN cd services/discord-rest-listener \
-    && npm install && npm run build && npm prune --production
+# Build each service from workspace root
+RUN npm run build --workspace=services/bot-presence
+RUN npm run build --workspace=services/discord-rest-listener
+RUN npm run build --workspace=services/feed-requests
+RUN npm run build --workspace=services/user-feeds-next
+RUN npm run build --workspace=services/backend-api
 
-RUN cd services/feed-requests \
-    && npm install && npm run build && npm prune --production
-
-RUN cd services/user-feeds-next \
-    && npm install && npm run build && npm prune --production
-
-RUN cd services/backend-api \
-    && npm install && npm run build && npm prune --production
+# Drop dev dependencies across all workspaces
+RUN npm prune --omit=dev --workspaces
 
 # ---------------------------------------------------------------------------
 # final – lean runtime image
