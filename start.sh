@@ -134,10 +134,13 @@ until /usr/lib/postgresql/17/bin/pg_isready -h 127.0.0.1 -U postgres &>/dev/null
     sleep 1
 done
 
-echo "[wait] Waiting for RabbitMQ..."
-until rabbitmqctl status &>/dev/null 2>&1; do
+echo "[wait] Waiting for RabbitMQ AMQP port (5672)..."
+# rabbitmqctl status only confirms the Erlang node is up, not that the AMQP
+# listener is ready. Check the actual TCP port instead.
+until bash -c 'echo > /dev/tcp/127.0.0.1/5672' 2>/dev/null; do
     sleep 2
 done
+echo "[wait] RabbitMQ AMQP port is open"
 
 # ---------------------------------------------------------------------------
 # Initialise MongoDB replica set
