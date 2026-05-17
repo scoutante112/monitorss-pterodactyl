@@ -20,25 +20,29 @@ The Docker image is built and pushed automatically to GHCR via GitHub Actions on
 1. Open [discord.com/developers/applications](https://discord.com/developers/applications)
 2. Create a new application and bot
 3. Note down: **Bot Token**, **Client ID**, **Client Secret**
-4. Under OAuth2 → Redirects add: `http://YOUR_SERVER_IP:8000/api/v1/discord/callback-v2`
+4. Under **OAuth2 → Redirects** add: `https://yourdomain.com/api/v1/discord/callback-v2`
+
+> **A domain name is required.**  
+> Discord no longer supports raw IP addresses in OAuth2 redirect URIs — you must use a domain name. Point a domain or subdomain at your server and use that in all redirect URI fields.  
+> Free options if you don't have a domain: [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) or [DuckDNS](https://www.duckdns.org/).
 
 ### 3. Create the server in Pterodactyl
 
 Use the imported egg and fill in the variables:
 
-| Variable | How to get it |
+| Variable | Example value |
 |----------|--------------|
 | Discord Bot Token | Developer Portal → Bot |
 | Discord Client ID | Developer Portal → General |
 | Discord Client Secret | Developer Portal → OAuth2 |
-| Login Redirect URI | `http://YOUR_SERVER_IP:8000` |
-| Discord OAuth2 Redirect URI | `http://YOUR_SERVER_IP:8000/api/v1/discord/callback-v2` |
+| Login Redirect URI | `https://yourdomain.com` |
+| Discord OAuth2 Redirect URI | `https://yourdomain.com/api/v1/discord/callback-v2` |
 | Session Secret | `openssl rand -hex 32` |
 | Session Salt | `openssl rand -hex 8` |
 
-### 4. Open port 8000
+### 4. Open the port
 
-Make sure port **8000** (or whatever you set `BACKEND_API_PORT` to) is allocated in Pterodactyl and open in your firewall.
+Make sure the port you set in `BACKEND_API_PORT` (default `8000`) is allocated in Pterodactyl and open in your firewall.
 
 ---
 
