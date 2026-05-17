@@ -41,15 +41,15 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
 RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
     && rm -rf /var/lib/apt/lists/*
 
-# Patch all RabbitMQ scripts (both wrapper and actual binary, skip symlinks):
-# 1. Remove "Only root or rabbitmq" check (NSS wrapper handles identity instead)
-# 2. Redirect startup_log/startup_err from read-only /var/log/rabbitmq to /tmp
-RUN for f in /usr/sbin/rabbitmq-server /usr/lib/rabbitmq/bin/rabbitmq-server; do \
-      [ -f "$f" ] && [ ! -L "$f" ] || continue; \
-      sed -i '/Only root or rabbitmq should run rabbitmq-server/{n;d}' "$f"; \
-      sed -i '/Only root or rabbitmq should run rabbitmq-server/d' "$f"; \
-      sed -i 's|/var/log/rabbitmq|/tmp/rabbitmq-logs|g' "$f"; \
-    done
+# Replace /usr/sbin/rabbitmq-server entirely with a minimal wrapper.
+# The Debian wrapper hardcodes a redirect to /var/log/rabbitmq/startup_log at
+# line 33 before reading any environment variables – unfixable with sed alone.
+RUN printf '#!/bin/sh\nmkdir -p /tmp/rabbitmq-logs\nexport RABBITMQ_LOG_BASE=/tmp/rabbitmq-logs\nexec /usr/lib/rabbitmq/bin/rabbitmq-server "$@"\n' \
+    > /usr/sbin/rabbitmq-server \
+    && chmod +x /usr/sbin/rabbitmq-server
+
+# Patch the actual rabbitmq binary so it also uses /tmp instead of /var/log/rabbitmq
+RUN sed -i 's|/var/log/rabbitmq|/tmp/rabbitmq-logs|g' /usr/lib/rabbitmq/bin/rabbitmq-server
 
 # ---------------------------------------------------------------------------
 # builder – clone MonitoRSS and build all services
