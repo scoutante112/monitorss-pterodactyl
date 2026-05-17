@@ -42,7 +42,9 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
 # Bookworm does not ship — so we use 3.12 to avoid the timer:tc/2 version mismatch.
 RUN apt-get update && apt-get install -y \
     erlang-base erlang-asn1 erlang-crypto erlang-mnesia erlang-os-mon \
-    erlang-public-key erlang-ssl erlang-runtime-tools erlang-inets redis-server \
+    erlang-public-key erlang-ssl erlang-runtime-tools erlang-inets \
+    erlang-tools erlang-syntax-tools erlang-xmerl erlang-parsetools \
+    redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # RabbitMQ 3.12.14 generic Unix binary (compatible with OTP 25 from Bookworm)
