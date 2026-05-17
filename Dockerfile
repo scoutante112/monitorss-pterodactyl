@@ -76,8 +76,7 @@ RUN npm run build --workspace=services/feed-requests
 RUN npm run build --workspace=services/user-feeds-next
 RUN npm run build --workspace=services/backend-api
 
-# Drop dev dependencies (--ignore-scripts prevents prepare hooks from re-running)
-RUN npm prune --omit=dev --workspaces --ignore-scripts
+# Do NOT prune dev dependencies – mikro-orm CLI (used for migrations) lives in devDeps
 
 # ---------------------------------------------------------------------------
 # final – lean runtime image

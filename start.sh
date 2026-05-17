@@ -79,6 +79,15 @@ mongod \
     --pidfilepath /tmp/mongod.pid \
     --fork
 
+# Remove stale PID file left by a previous container run so pg_ctl starts cleanly
+if [ -f "$PG_DATA/postmaster.pid" ]; then
+    STALE_PID=$(head -1 "$PG_DATA/postmaster.pid" 2>/dev/null || echo "")
+    if [ -z "$STALE_PID" ] || ! kill -0 "$STALE_PID" 2>/dev/null; then
+        echo "[init] Removing stale PostgreSQL PID file..."
+        rm -f "$PG_DATA/postmaster.pid"
+    fi
+fi
+
 echo "[start] Starting PostgreSQL..."
 /usr/lib/postgresql/17/bin/pg_ctl start \
     -D "$PG_DATA" \
@@ -168,14 +177,14 @@ psql -h 127.0.0.1 -U postgres -tc "SELECT 1 FROM pg_database WHERE datname='user
 # ---------------------------------------------------------------------------
 echo "[migrate] Running feed-requests migrations..."
 cd /app/services/feed-requests
-FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/feedrequests}" \
-FEED_REQUESTS_POSTGRES_SCHEMA="${FEED_REQUESTS_POSTGRES_SCHEMA:-feedrequests}" \
-FEED_REQUESTS_API_KEY="${FEED_REQUESTS_API_KEY:-feed-requests-api-key}" \
-FEED_REQUESTS_API_PORT="${FEED_REQUESTS_API_PORT:-5000}" \
-FEED_REQUESTS_RABBITMQ_BROKER_URL="${FEED_REQUESTS_RABBITMQ_BROKER_URL:-amqp://guest:guest@localhost:5672}" \
-FEED_REQUESTS_REDIS_URI="${FEED_REQUESTS_REDIS_URI:-redis://localhost:6379}" \
-FEED_REQUESTS_REDIS_DISABLE_CLUSTER=true \
-    npx mikro-orm migration:up
+export FEED_REQUESTS_POSTGRES_URI="${FEED_REQUESTS_POSTGRES_URI:-postgres://postgres@127.0.0.1:5432/feedrequests}"
+export FEED_REQUESTS_POSTGRES_SCHEMA="${FEED_REQUESTS_POSTGRES_SCHEMA:-feedrequests}"
+export FEED_REQUESTS_API_KEY="${FEED_REQUESTS_API_KEY:-feed-requests-api-key}"
+export FEED_REQUESTS_API_PORT="${FEED_REQUESTS_API_PORT:-5000}"
+export FEED_REQUESTS_RABBITMQ_BROKER_URL="${FEED_REQUESTS_RABBITMQ_BROKER_URL:-amqp://guest:guest@localhost:5672}"
+export FEED_REQUESTS_REDIS_URI="${FEED_REQUESTS_REDIS_URI:-redis://localhost:6379}"
+export FEED_REQUESTS_REDIS_DISABLE_CLUSTER=true
+npm run migration:up
 
 echo "[migrate] Running user-feeds migrations..."
 cd /app/services/user-feeds-next
