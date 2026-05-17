@@ -113,6 +113,8 @@ export RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA"
 export RABBITMQ_LOG_BASE="$LOG_DIR"
 export RABBITMQ_PID_FILE="/tmp/rabbitmq.pid"
 export RABBITMQ_HOME="/usr/local/rabbitmq"
+# Force IPv4 listener so the port check works even when IPv6 is disabled
+export RABBITMQ_NODE_IP_ADDRESS="0.0.0.0"
 # Fixed Erlang cookie so epmd can always reconnect
 ERLANG_COOKIE="monitorss-pterodactyl-cookie"
 rm -f "$HOME/.erlang.cookie"
@@ -142,7 +144,9 @@ until bash -c 'echo > /dev/tcp/127.0.0.1/5672' 2>/dev/null; do
     sleep 2
     AMQP_WAIT=$((AMQP_WAIT + 2))
     if [ "$AMQP_WAIT" -ge 120 ]; then
-        echo "[warn] RabbitMQ AMQP port not ready after 120s, proceeding anyway"
+        echo "[warn] RabbitMQ AMQP port not ready after 120s. RabbitMQ log:"
+        cat "$LOG_DIR/rabbit@localhost.log" 2>/dev/null | tail -40 || echo "(no log found)"
+        echo "[warn] Proceeding anyway..."
         break
     fi
 done
