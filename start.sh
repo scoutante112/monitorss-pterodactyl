@@ -41,6 +41,7 @@ if [ ! -f "$PG_DATA/PG_VERSION" ]; then
     /usr/lib/postgresql/17/bin/initdb \
         -D "$PG_DATA" \
         --encoding=UTF8 \
+        --locale=C \
         --username=postgres
 
     # Replace pg_hba.conf with trust auth so we can connect over TCP
@@ -55,6 +56,10 @@ EOF
     # and not writable by Pterodactyl's container user.
     echo "unix_socket_directories = '/tmp'" >> "$PG_DATA/postgresql.conf"
 fi
+
+# Always ensure socket dir is set in case this is an existing data dir from before the fix
+grep -q "unix_socket_directories" "$PG_DATA/postgresql.conf" \
+    || echo "unix_socket_directories = '/tmp'" >> "$PG_DATA/postgresql.conf"
 
 # ---------------------------------------------------------------------------
 # Start infrastructure services in the background
@@ -72,7 +77,11 @@ echo "[start] Starting PostgreSQL..."
 /usr/lib/postgresql/17/bin/pg_ctl start \
     -D "$PG_DATA" \
     -l "$LOG_DIR/postgresql.log" \
-    -w
+    -w || {
+    echo "[error] PostgreSQL failed to start! Log:"
+    cat "$LOG_DIR/postgresql.log" 2>/dev/null || echo "(log file not found)"
+    exit 1
+}
 
 echo "[start] Starting Redis..."
 redis-server \
