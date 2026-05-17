@@ -34,14 +34,8 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
     && apt-get update && apt-get install -y postgresql-17 \
     && rm -rf /var/lib/apt/lists/*
 
-# RabbitMQ + Erlang (via official Cloudsmith setup scripts)
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/setup.deb.sh' | bash \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/setup.deb.sh' | bash \
-    && apt-get install -y erlang-base rabbitmq-server \
-    && rm -rf /var/lib/apt/lists/*
-
-# Redis
-RUN apt-get update && apt-get install -y redis-server \
+# RabbitMQ + Erlang + Redis (all from Debian Bookworm main repos)
+RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------
