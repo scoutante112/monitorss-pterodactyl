@@ -6,6 +6,23 @@ set -e
 # Runs as the unprivileged 'container' user (no root/chown/gosu needed).
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Fix missing /etc/passwd entry – Pterodactyl runs with arbitrary UIDs that
+# don't exist in the image. Tools like initdb require a valid passwd entry.
+# libnss-wrapper injects a fake one for the current UID at runtime.
+# ---------------------------------------------------------------------------
+if ! getent passwd "$(id -u)" > /dev/null 2>&1; then
+    NSS_LIB=$(find /usr/lib -name "libnss_wrapper.so" 2>/dev/null | head -1)
+    if [ -n "$NSS_LIB" ]; then
+        echo "container:x:$(id -u):$(id -g):container:/home/container:/bin/bash" > /tmp/nss_passwd
+        cp /etc/group /tmp/nss_group 2>/dev/null || echo "container:x:$(id -g):" > /tmp/nss_group
+        export LD_PRELOAD="$NSS_LIB"
+        export NSS_WRAPPER_PASSWD=/tmp/nss_passwd
+        export NSS_WRAPPER_GROUP=/tmp/nss_group
+        echo "[init] NSS wrapper active for uid=$(id -u)"
+    fi
+fi
+
 DATA_DIR="${DATA_DIR:-/home/container/data}"
 LOG_DIR="/home/container/logs"
 

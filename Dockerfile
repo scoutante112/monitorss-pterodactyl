@@ -10,7 +10,7 @@ ENV NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl gnupg lsb-release ca-certificates \
-    supervisor wget git procps \
+    supervisor wget git procps libnss-wrapper \
     && rm -rf /var/lib/apt/lists/*
 
 # Allow RabbitMQ to start as any non-root user
