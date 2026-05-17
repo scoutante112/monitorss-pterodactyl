@@ -48,8 +48,7 @@ RUN for f in /usr/sbin/rabbitmq-server /usr/lib/rabbitmq/bin/rabbitmq-server; do
       [ -f "$f" ] && [ ! -L "$f" ] || continue; \
       sed -i '/Only root or rabbitmq should run rabbitmq-server/{n;d}' "$f"; \
       sed -i '/Only root or rabbitmq should run rabbitmq-server/d' "$f"; \
-      sed -i 's|/var/log/rabbitmq/startup_log|/tmp/rabbitmq-startup.log|g' "$f"; \
-      sed -i 's|/var/log/rabbitmq/startup_err|/tmp/rabbitmq-startup.err|g' "$f"; \
+      sed -i 's|/var/log/rabbitmq|/tmp/rabbitmq-logs|g' "$f"; \
     done
 
 # ---------------------------------------------------------------------------

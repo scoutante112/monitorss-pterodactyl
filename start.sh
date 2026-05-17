@@ -98,6 +98,7 @@ redis-server \
     --save 60 1
 
 echo "[start] Starting RabbitMQ..."
+mkdir -p /tmp/rabbitmq-logs
 # Pre-create the Erlang cookie in $HOME so Erlang never tries /.erlang.cookie.
 # Remove any leftover cookie from a previous run (chmod 400 would block overwrite).
 ERLANG_COOKIE="monitorss-pterodactyl-cookie"
