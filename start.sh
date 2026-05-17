@@ -50,6 +50,10 @@ local   all   all              trust
 host    all   all   127.0.0.1/32   trust
 host    all   all   ::1/128        trust
 EOF
+
+    # Use /tmp for the unix socket – /var/run/postgresql is owned by postgres (uid 105)
+    # and not writable by Pterodactyl's container user.
+    echo "unix_socket_directories = '/tmp'" >> "$PG_DATA/postgresql.conf"
 fi
 
 # ---------------------------------------------------------------------------
