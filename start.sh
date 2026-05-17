@@ -18,12 +18,14 @@ export HOME=/home/container
 if ! getent passwd "$(id -u)" > /dev/null 2>&1; then
     NSS_LIB=$(find /usr/lib -name "libnss_wrapper.so" 2>/dev/null | head -1)
     if [ -n "$NSS_LIB" ]; then
-        echo "container:x:$(id -u):$(id -g):container:/home/container:/bin/bash" > /tmp/nss_passwd
-        cp /etc/group /tmp/nss_group 2>/dev/null || echo "container:x:$(id -g):" > /tmp/nss_group
+        # Report username as "rabbitmq" so rabbitmq-server's user check passes
+        # (it allows root or rabbitmq; this makes id -un return "rabbitmq").
+        echo "rabbitmq:x:$(id -u):$(id -g):rabbitmq:/home/container:/bin/sh" > /tmp/nss_passwd
+        cp /etc/group /tmp/nss_group 2>/dev/null || echo "rabbitmq:x:$(id -g):" > /tmp/nss_group
         export LD_PRELOAD="$NSS_LIB"
         export NSS_WRAPPER_PASSWD=/tmp/nss_passwd
         export NSS_WRAPPER_GROUP=/tmp/nss_group
-        echo "[init] NSS wrapper active for uid=$(id -u)"
+        echo "[init] NSS wrapper active for uid=$(id -u) (reported as rabbitmq)"
     fi
 fi
 
@@ -96,10 +98,12 @@ redis-server \
     --save 60 1
 
 echo "[start] Starting RabbitMQ..."
-# Pre-create the Erlang cookie in $HOME so Erlang never tries /.erlang.cookie
+# Pre-create the Erlang cookie in $HOME so Erlang never tries /.erlang.cookie.
+# Remove any leftover cookie from a previous run (chmod 400 would block overwrite).
 ERLANG_COOKIE="monitorss-pterodactyl-cookie"
+rm -f "$HOME/.erlang.cookie"
 echo "$ERLANG_COOKIE" > "$HOME/.erlang.cookie"
-chmod 400 "$HOME/.erlang.cookie"
+chmod 600 "$HOME/.erlang.cookie"
 
 RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA" \
 RABBITMQ_LOG_BASE="$LOG_DIR" \
