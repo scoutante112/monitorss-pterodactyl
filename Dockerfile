@@ -37,26 +37,26 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
     && apt-get update && apt-get install -y postgresql-17 \
     && rm -rf /var/lib/apt/lists/*
 
-# RabbitMQ + Erlang + Redis (all from Debian Bookworm main repos)
-RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
+# Erlang runtime (needed by RabbitMQ) + Redis
+# We use the generic Unix RabbitMQ binary instead of the Debian package.
+# The Debian package has complex wrapper scripts with user checks and hardcoded
+# paths that are impossible to fully patch for unprivileged container users.
+RUN apt-get update && apt-get install -y \
+    erlang-base erlang-asn1 erlang-crypto erlang-mnesia erlang-os-mon \
+    erlang-public-key erlang-ssl erlang-runtime-tools erlang-inets redis-server \
     && rm -rf /var/lib/apt/lists/*
 
-# Tell RabbitMQ to use writable paths via its own env config file.
-# This is read early in the startup script and overrides hardcoded defaults.
-# LOG_BASE fixes the startup_log redirect; MNESIA_BASE fixes Mnesia DB location.
-RUN mkdir -p /etc/rabbitmq && printf 'MNESIA_BASE=/home/container/data/rabbitmq\nLOG_BASE=/home/container/logs\nPID_FILE=/tmp/rabbitmq.pid\n' \
-    > /etc/rabbitmq/rabbitmq-env.conf
+# Download RabbitMQ generic Unix binary – no wrapper scripts, no user checks,
+# runs as any user out of the box (same approach as the official Pterodactyl RabbitMQ egg)
+RUN RABBITMQ_VERSION=3.13.7 \
+    && curl -fsSL "https://github.com/rabbitmq/rabbitmq-server/releases/download/v${RABBITMQ_VERSION}/rabbitmq-server-generic-unix-${RABBITMQ_VERSION}.tar.xz" \
+       -o /tmp/rabbitmq.tar.xz \
+    && apt-get install -y xz-utils && rm -rf /var/lib/apt/lists/* \
+    && tar xf /tmp/rabbitmq.tar.xz -C /usr/local \
+    && mv /usr/local/rabbitmq_server-${RABBITMQ_VERSION} /usr/local/rabbitmq \
+    && rm /tmp/rabbitmq.tar.xz
 
-# Patch /usr/sbin/rabbitmq-server in-place:
-# 1. Line 33: redirect startup_log/startup_err to /tmp (happens before env conf is sourced)
-# 2. Remove "Only root or rabbitmq" user check (awk handles echo + exit 1 as two lines)
-RUN sed -i \
-      's|/var/log/rabbitmq/startup_log|/tmp/rabbitmq-startup.log|g; s|/var/log/rabbitmq/startup_err|/tmp/rabbitmq-startup.err|g' \
-      /usr/sbin/rabbitmq-server \
-    && awk '/Only root or rabbitmq should run rabbitmq-server/{skip=2} skip>0{skip--; next} 1' \
-         /usr/sbin/rabbitmq-server > /tmp/rq-patched \
-    && cp /tmp/rq-patched /usr/sbin/rabbitmq-server \
-    && chmod +x /usr/sbin/rabbitmq-server
+ENV PATH="/usr/local/rabbitmq/sbin:$PATH"
 
 # ---------------------------------------------------------------------------
 # builder – clone MonitoRSS and build all services

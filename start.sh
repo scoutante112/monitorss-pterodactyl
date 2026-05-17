@@ -105,31 +105,22 @@ redis-server \
     --logfile "$LOG_DIR/redis.log" \
     --save 60 1
 
-echo "[start] Starting RabbitMQ..."
-mkdir -p /tmp/rabbitmq-logs
-# Static node name so Mnesia DB is always compatible across container restarts.
-# Without this, rabbit@<hostname> changes each restart → Mnesia mismatch → port 5672 never opens.
+echo "[start] Starting RabbitMQ (generic Unix binary)..."
+# Static node name so Mnesia DB is always compatible across container restarts
 export RABBITMQ_NODENAME="rabbit@localhost"
 export RABBITMQ_USE_LONGNAME="false"
-# Clear Mnesia data that may belong to an old hostname (rabbit@<old-host>).
-# With RABBITMQ_NODENAME fixed to rabbit@localhost, the correct dir is:
-MNESIA_NODE_DIR="$RABBITMQ_DATA/rabbit@localhost"
-# Remove any directories for OTHER node names to prevent Mnesia conflicts
-for d in "$RABBITMQ_DATA"/rabbit@*; do
-    [ -d "$d" ] && [ "$d" != "$MNESIA_NODE_DIR" ] && rm -rf "$d" && echo "[init] Removed stale RabbitMQ Mnesia dir: $d"
-done
-# Pre-create the Erlang cookie in $HOME so Erlang never tries /.erlang.cookie.
-# Remove any leftover cookie from a previous run (chmod 400 would block overwrite).
+export RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA"
+export RABBITMQ_LOG_BASE="$LOG_DIR"
+export RABBITMQ_PID_FILE="/tmp/rabbitmq.pid"
+export RABBITMQ_HOME="/usr/local/rabbitmq"
+# Fixed Erlang cookie so epmd can always reconnect
 ERLANG_COOKIE="monitorss-pterodactyl-cookie"
 rm -f "$HOME/.erlang.cookie"
 echo "$ERLANG_COOKIE" > "$HOME/.erlang.cookie"
 chmod 600 "$HOME/.erlang.cookie"
+export RABBITMQ_ERLANG_COOKIE="$ERLANG_COOKIE"
 
-RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA" \
-RABBITMQ_LOG_BASE="$LOG_DIR" \
-RABBITMQ_PID_FILE="/tmp/rabbitmq.pid" \
-RABBITMQ_ERLANG_COOKIE="$ERLANG_COOKIE" \
-    rabbitmq-server -detached
+rabbitmq-server -detached
 sleep 5
 
 # ---------------------------------------------------------------------------
