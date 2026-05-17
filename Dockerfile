@@ -86,6 +86,8 @@ FROM base
 WORKDIR /app
 
 COPY --from=builder /build/packages             ./packages
+# Root node_modules contains @monitorss/* workspace symlinks that services depend on
+COPY --from=builder /build/node_modules         ./node_modules
 COPY --from=builder /build/services/bot-presence            ./services/bot-presence
 COPY --from=builder /build/services/discord-rest-listener   ./services/discord-rest-listener
 COPY --from=builder /build/services/feed-requests           ./services/feed-requests
