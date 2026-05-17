@@ -34,16 +34,10 @@ RUN curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
     && apt-get update && apt-get install -y postgresql-17 \
     && rm -rf /var/lib/apt/lists/*
 
-# RabbitMQ + Erlang
-RUN curl -1sLf "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xf77f15208b0b9c8509e57f48f58c1b35c5a9ef36" \
-    | gpg --dearmor -o /usr/share/keyrings/rabbitmq-erlang.gpg \
-    && curl -1sLf "https://packagecloud.io/rabbitmq/rabbitmq-server/gpgkey" \
-    | gpg --dearmor -o /usr/share/keyrings/rabbitmq-server.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-erlang.gpg] http://ppa1.rabbitmq.com/rabbitmq/rabbitmq-erlang/deb/debian bookworm main" \
-    | tee /etc/apt/sources.list.d/rabbitmq-erlang.list \
-    && echo "deb [signed-by=/usr/share/keyrings/rabbitmq-server.gpg] https://packagecloud.io/rabbitmq/rabbitmq-server/debian/ bookworm main" \
-    | tee /etc/apt/sources.list.d/rabbitmq-server.list \
-    && apt-get update && apt-get install -y erlang-base rabbitmq-server \
+# RabbitMQ + Erlang (via official Cloudsmith setup scripts)
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/setup.deb.sh' | bash \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/setup.deb.sh' | bash \
+    && apt-get install -y erlang-base rabbitmq-server \
     && rm -rf /var/lib/apt/lists/*
 
 # Redis
