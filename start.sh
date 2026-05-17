@@ -130,8 +130,21 @@ EOF
 export RABBITMQ_CONFIG_FILE="$RABBITMQ_DATA/rabbitmq.conf"
 echo "[init] RabbitMQ config written to $RABBITMQ_DATA/rabbitmq.conf"
 
-rabbitmq-server -detached > /tmp/rabbitmq-boot.log 2>&1 || true
-sleep 5
+# Run without -detached so stdout/stderr are captured (backgrounded with nohup &).
+# -detached forks a child Erlang VM whose output escapes our redirect.
+nohup rabbitmq-server > "$RABBITMQ_DATA/rabbitmq-boot.log" 2>&1 &
+RABBITMQ_BG_PID=$!
+echo "[init] RabbitMQ background PID: $RABBITMQ_BG_PID"
+sleep 10
+if kill -0 $RABBITMQ_BG_PID 2>/dev/null; then
+    echo "[init] RabbitMQ process still alive"
+else
+    echo "[error] RabbitMQ process already exited! Boot log:"
+    cat "$RABBITMQ_DATA/rabbitmq-boot.log" 2>/dev/null || echo "(empty)"
+    echo "[debug] Erlang crash dump (if any):"
+    find /home/container /tmp /usr/local/rabbitmq -name "erl_crash.dump" 2>/dev/null \
+        | head -3 | xargs -I{} head -30 {} 2>/dev/null
+fi
 
 # ---------------------------------------------------------------------------
 # Wait for services to become ready
