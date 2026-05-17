@@ -113,14 +113,19 @@ export RABBITMQ_MNESIA_BASE="$RABBITMQ_DATA"
 export RABBITMQ_LOG_BASE="$LOG_DIR"
 export RABBITMQ_PID_FILE="/tmp/rabbitmq.pid"
 export RABBITMQ_HOME="/usr/local/rabbitmq"
-# Force IPv4 listener so the port check works even when IPv6 is disabled
-export RABBITMQ_NODE_IP_ADDRESS="0.0.0.0"
 # Fixed Erlang cookie so epmd can always reconnect
 ERLANG_COOKIE="monitorss-pterodactyl-cookie"
 rm -f "$HOME/.erlang.cookie"
 echo "$ERLANG_COOKIE" > "$HOME/.erlang.cookie"
 chmod 600 "$HOME/.erlang.cookie"
 export RABBITMQ_ERLANG_COOKIE="$ERLANG_COOKIE"
+
+# Explicit IPv4 listener so Node.js can connect via 127.0.0.1
+# (container may have net.ipv6.bindv6only=1, breaking dual-stack on [::]:5672)
+cat > /tmp/rabbitmq.conf << 'EOF'
+listeners.tcp.1 = 0.0.0.0:5672
+EOF
+export RABBITMQ_CONFIG_FILE=/tmp/rabbitmq.conf
 
 rabbitmq-server -detached
 sleep 5
