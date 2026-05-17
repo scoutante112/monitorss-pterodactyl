@@ -44,11 +44,11 @@ RUN apt-get update && apt-get install -y rabbitmq-server redis-server \
 # Replace /usr/sbin/rabbitmq-server entirely with a minimal wrapper.
 # The Debian wrapper hardcodes a redirect to /var/log/rabbitmq/startup_log at
 # line 33 before reading any environment variables – unfixable with sed alone.
-RUN printf '#!/bin/sh\nmkdir -p /tmp/rabbitmq-logs\nexport RABBITMQ_LOG_BASE=/tmp/rabbitmq-logs\nexec /usr/lib/rabbitmq/bin/rabbitmq-server "$@"\n' \
+RUN printf '#!/bin/sh\n# Use the log dir passed from start.sh, fall back to /tmp\nRABBITMQ_LOG_BASE="${RABBITMQ_LOG_BASE:-/tmp/rabbitmq-logs}"\nmkdir -p "$RABBITMQ_LOG_BASE"\nexport RABBITMQ_LOG_BASE\nexec /usr/lib/rabbitmq/bin/rabbitmq-server "$@"\n' \
     > /usr/sbin/rabbitmq-server \
     && chmod +x /usr/sbin/rabbitmq-server
 
-# Patch the actual rabbitmq binary so it also uses /tmp instead of /var/log/rabbitmq
+# Patch the actual rabbitmq binary so it also uses the env var instead of /var/log/rabbitmq
 RUN sed -i 's|/var/log/rabbitmq|/tmp/rabbitmq-logs|g' /usr/lib/rabbitmq/bin/rabbitmq-server
 
 # ---------------------------------------------------------------------------
