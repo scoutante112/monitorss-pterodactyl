@@ -297,7 +297,21 @@ export LOG_LEVEL="${LOG_LEVEL:-info}"
 [ -n "$BACKEND_API_REDDIT_CLIENT_ID" ]     && export BACKEND_API_REDDIT_CLIENT_ID
 [ -n "$BACKEND_API_REDDIT_CLIENT_SECRET" ] && export BACKEND_API_REDDIT_CLIENT_SECRET
 [ -n "$BACKEND_API_REDDIT_REDIRECT_URI" ]  && export BACKEND_API_REDDIT_REDIRECT_URI
-[ -n "$BACKEND_API_ENCRYPTION_KEY_HEX" ]   && export BACKEND_API_ENCRYPTION_KEY_HEX
+
+# BACKEND_API_ENCRYPTION_KEY_HEX is required (exactly 64 hex chars).
+# Auto-generate on first run and persist so it survives restarts.
+if [ -z "$BACKEND_API_ENCRYPTION_KEY_HEX" ]; then
+    _KEY_FILE="$DATA_DIR/encryption_key.hex"
+    if [ -f "$_KEY_FILE" ]; then
+        export BACKEND_API_ENCRYPTION_KEY_HEX=$(cat "$_KEY_FILE")
+        echo "[init] Loaded encryption key from $_KEY_FILE"
+    else
+        export BACKEND_API_ENCRYPTION_KEY_HEX=$(openssl rand -hex 32)
+        echo "$BACKEND_API_ENCRYPTION_KEY_HEX" > "$_KEY_FILE"
+        chmod 600 "$_KEY_FILE"
+        echo "[init] Generated and saved new encryption key to $_KEY_FILE"
+    fi
+fi
 
 # Internal API keys
 export FEED_REQUESTS_API_KEY="${FEED_REQUESTS_API_KEY:-feed-requests-api-key}"
