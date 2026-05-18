@@ -314,7 +314,7 @@ echo ""
 (
     sleep 20
     while true; do
-        RUNNING=$(supervisorctl -c /etc/supervisor/supervisord.conf status 2>/dev/null | grep -c "RUNNING" || echo 0)
+        RUNNING=$(supervisorctl -c /etc/supervisor/supervisord.conf status 2>/dev/null | grep -c "RUNNING")
         if [ "$RUNNING" -ge 6 ]; then
             echo ""
             echo "========================================================"
