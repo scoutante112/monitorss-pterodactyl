@@ -267,6 +267,26 @@
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
+    },
+    {
+      "name": "Admin User IDs",
+      "description": "Comma-separated Discord user IDs with admin access in the control panel. Example: 123456789,987654321",
+      "env_variable": "BACKEND_API_ADMIN_USER_IDS",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Log Level",
+      "description": "Logging verbosity for all services. Options: error, warn, info, debug",
+      "env_variable": "LOG_LEVEL",
+      "default_value": "info",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|in:error,warn,info,debug",
+      "field_type": "text"
     }
   ]
 }
