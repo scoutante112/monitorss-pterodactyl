@@ -173,7 +173,7 @@
       "description": "SMTP password used to authenticate (optional).",
       "env_variable": "BACKEND_API_SMTP_PASSWORD",
       "default_value": "",
-      "user_viewable": false,
+      "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
@@ -203,7 +203,7 @@
       "description": "Reddit app client secret (optional).",
       "env_variable": "BACKEND_API_REDDIT_CLIENT_SECRET",
       "default_value": "",
-      "user_viewable": false,
+      "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
@@ -223,7 +223,7 @@
       "description": "Random 64-character hex string used for encryption (required for Reddit auth). Generate with: openssl rand -hex 32",
       "env_variable": "BACKEND_API_ENCRYPTION_KEY_HEX",
       "default_value": "",
-      "user_viewable": false,
+      "user_viewable": true,
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
