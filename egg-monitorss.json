@@ -217,6 +217,46 @@
       "user_editable": true,
       "rules": "nullable|string",
       "field_type": "text"
+    },
+    {
+      "name": "Bot Status",
+      "description": "Discord bot status. Options: online, idle, dnd, invisible, offline",
+      "env_variable": "BOT_PRESENCE_STATUS",
+      "default_value": "online",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string|in:online,idle,dnd,invisible,offline",
+      "field_type": "text"
+    },
+    {
+      "name": "Bot Activity Type",
+      "description": "Activity type shown in bot status. Options: playing, streaming, listening, watching, custom_status, competing. Both Activity Type and Activity Name must be set.",
+      "env_variable": "BOT_PRESENCE_ACTIVITY_TYPE",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Bot Activity Name",
+      "description": "Text shown in bot activity (e.g. \"with RSS feeds\"). Both Activity Type and Activity Name must be set.",
+      "env_variable": "BOT_PRESENCE_ACTIVITY_NAME",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
+      "name": "Bot Stream URL",
+      "description": "Stream URL for \"streaming\" activity type. Must be a Twitch or YouTube URL.",
+      "env_variable": "BOT_PRESENCE_ACTIVITY_STREAM_URL",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
     }
   ]
 }
