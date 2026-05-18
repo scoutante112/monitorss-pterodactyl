@@ -52,6 +52,7 @@ Use the imported egg and fill in the variables. The ones marked **Required** mus
 | Reddit Client ID | Optional | Reddit feed auth — requires all three Reddit fields |
 | Reddit Client Secret | Optional | Reddit app secret |
 | Reddit Redirect URI | Optional | `https://yourdomain.com/api/v1/reddit/callback` |
+| Encryption Key (hex) | Optional | 64-char hex key for encryption. Auto-generated and saved on first start if left empty. Set your own with `openssl rand -hex 32` if you prefer. |
 
 ### 4. Open the port
 
