@@ -28,17 +28,30 @@ The Docker image is built and pushed automatically to GHCR via GitHub Actions on
 
 ### 3. Create the server in Pterodactyl
 
-Use the imported egg and fill in the variables:
+Use the imported egg and fill in the variables. The ones marked **Required** must be set for the bot to work.
 
-| Variable | Example value |
-|----------|--------------|
-| Discord Bot Token | Developer Portal → Bot |
-| Discord Client ID | Developer Portal → General |
-| Discord Client Secret | Developer Portal → OAuth2 |
-| Login Redirect URI | `https://yourdomain.com` |
-| Discord OAuth2 Redirect URI | `https://yourdomain.com/api/v1/discord/callback-v2` |
-| Session Secret | `openssl rand -hex 32` |
-| Session Salt | `openssl rand -hex 8` |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| Discord Bot Token | ✅ Required | Developer Portal → Bot |
+| Discord Client ID | ✅ Required | Developer Portal → General Information |
+| Discord Client Secret | ✅ Required | Developer Portal → OAuth2 |
+| Login Redirect URI | ✅ Required | Your domain, e.g. `https://yourdomain.com` |
+| Discord OAuth2 Redirect URI | ✅ Required | `https://yourdomain.com/api/v1/discord/callback-v2` |
+| Session Secret | ✅ Required | Run `openssl rand -hex 32` to generate |
+| Session Salt | ✅ Required | Run `openssl rand -hex 8` to generate |
+| Backend API Port | ✅ Required | Port the web UI listens on (default `8000`) |
+| Contact Email | Optional | Added to HTTP User-Agent so feed hosts can reach you |
+| Bot Status | Optional | `online`, `idle`, `dnd`, `invisible` (default `online`) |
+| Bot Activity Type | Optional | `playing`, `listening`, `watching`, etc. |
+| Bot Activity Name | Optional | Text shown in bot activity, e.g. `with RSS feeds` |
+| Bot Stream URL | Optional | Twitch/YouTube URL (only for `streaming` activity) |
+| SMTP Host | Optional | Email notifications — requires all four SMTP fields |
+| SMTP Username | Optional | SMTP username / email address |
+| SMTP Password | Optional | SMTP password |
+| SMTP From Address | Optional | Sender address shown on notification emails |
+| Reddit Client ID | Optional | Reddit feed auth — requires all three Reddit fields |
+| Reddit Client Secret | Optional | Reddit app secret |
+| Reddit Redirect URI | Optional | `https://yourdomain.com/api/v1/reddit/callback` |
 
 ### 4. Open the port
 
