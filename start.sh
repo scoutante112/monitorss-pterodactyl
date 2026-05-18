@@ -298,7 +298,37 @@ export BACKEND_API_FEED_REQUESTS_API_KEY="${BACKEND_API_FEED_REQUESTS_API_KEY:-f
 # ---------------------------------------------------------------------------
 # Hand off to supervisord
 # ---------------------------------------------------------------------------
+_CLIENT_ID="${BOT_PRESENCE_DISCORD_BOT_CLIENT_ID:-YOUR_CLIENT_ID}"
+_LOGIN_URI="${BACKEND_API_LOGIN_REDIRECT_URI:-http://your-domain}"
+
 echo "[start] All infrastructure ready. Starting MonitoRSS services..."
-echo "[start] Web UI will be available on port ${BACKEND_API_PORT:-8000}"
-echo "[ready] All MonitoRSS services started"
+echo "[start] Web UI will be available at: ${_LOGIN_URI}"
+echo ""
+echo "[info] Discord invite links:"
+echo "[info]   With permissions: https://discord.com/oauth2/authorize?client_id=${_CLIENT_ID}&scope=bot&permissions=19456"
+echo "[info]   Without role:     https://discord.com/oauth2/authorize?client_id=${_CLIENT_ID}&scope=bot"
+echo ""
+
+# Background process: waits until all 6 services are RUNNING, then prints a
+# clear "all up" banner. Runs after exec so it doesn't block supervisord startup.
+(
+    sleep 20
+    while true; do
+        RUNNING=$(supervisorctl -c /etc/supervisor/supervisord.conf status 2>/dev/null | grep -c "RUNNING" || echo 0)
+        if [ "$RUNNING" -ge 6 ]; then
+            echo ""
+            echo "========================================================"
+            echo "  All MonitoRSS services are UP and running!"
+            echo ""
+            echo "  Web UI:                  ${_LOGIN_URI}"
+            echo "  Invite (with perms):     https://discord.com/oauth2/authorize?client_id=${_CLIENT_ID}&scope=bot&permissions=19456"
+            echo "  Invite (without role):   https://discord.com/oauth2/authorize?client_id=${_CLIENT_ID}&scope=bot"
+            echo "========================================================"
+            echo ""
+            break
+        fi
+        sleep 5
+    done
+) &
+
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
