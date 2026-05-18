@@ -49,6 +49,16 @@
       "field_type": "text"
     },
     {
+      "name": "Contact Email",
+      "description": "Your email added to the HTTP User-Agent header so feed hosts can contact you if needed. Result: MonitoRSS [Self-Hosted]/1.0 you@example.com",
+      "env_variable": "CONTACT_EMAIL",
+      "default_value": "",
+      "user_viewable": true,
+      "user_editable": true,
+      "rules": "nullable|string",
+      "field_type": "text"
+    },
+    {
       "name": "Discord Client Secret",
       "description": "Your Discord application's client secret (used for OAuth2 login).",
       "env_variable": "BACKEND_API_DISCORD_CLIENT_SECRET",
